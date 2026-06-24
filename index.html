@@ -803,6 +803,7 @@ document.getElementById('yr').textContent=new Date().getFullYear();
     if(!W)W=canvas.parentElement?canvas.parentElement.clientWidth:window.innerWidth/2;
     if(!H)H=window.innerHeight;
     if(!W||!H)return;
+    var T=window.THREE;
     var dpr=Math.min(window.devicePixelRatio||1,1.5);
     var scene=new T.Scene();
     var camera=new T.PerspectiveCamera(40,W/H,0.1,50);
