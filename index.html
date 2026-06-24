@@ -806,73 +806,125 @@ document.getElementById('yr').textContent=new Date().getFullYear();
     var T=window.THREE;
     var dpr=Math.min(window.devicePixelRatio||1,1.5);
     var scene=new T.Scene();
-    var camera=new T.PerspectiveCamera(40,W/H,0.1,50);
-    camera.position.set(0,0.05,4.5);
+    var camera=new T.PerspectiveCamera(38,W/H,0.1,50);
+    camera.position.set(0.3,0.2,4.8);camera.lookAt(0,0,0);
     var renderer=new T.WebGLRenderer({canvas:canvas,antialias:true,alpha:true});
     renderer.setPixelRatio(dpr);renderer.setSize(W,H);
-    renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;
+    renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.45;
+    renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
 
-    var woodM=new T.MeshStandardMaterial({color:0x1A1208,roughness:0.88,metalness:0.04});
-    var panelM=new T.MeshStandardMaterial({color:0x231910,roughness:0.74,metalness:0.02});
-    var goldM=new T.MeshStandardMaterial({color:0xC9A24B,roughness:0.11,metalness:0.96});
-    var handleM=new T.MeshStandardMaterial({color:0xD4AA52,roughness:0.07,metalness:0.98});
+    // Procedural wood grain texture
+    function mkWoodTex(){
+      var c=document.createElement('canvas');c.width=256;c.height=512;
+      var ctx=c.getContext('2d');
+      var g=ctx.createLinearGradient(0,0,256,0);
+      g.addColorStop(0,'#16100A');g.addColorStop(0.45,'#221610');g.addColorStop(1,'#16100A');
+      ctx.fillStyle=g;ctx.fillRect(0,0,256,512);
+      ctx.strokeStyle='rgba(45,28,10,1)';ctx.lineWidth=0.9;
+      for(var i=0;i<60;i++){
+        var y=i*(512/60)+Math.random()*3;
+        ctx.globalAlpha=0.2+Math.random()*0.4;
+        ctx.beginPath();ctx.moveTo(0,y);
+        ctx.bezierCurveTo(64,y+(Math.random()-.5)*7,192,y+(Math.random()-.5)*7,256,y+(Math.random()-.5)*4);
+        ctx.stroke();
+      }
+      ctx.globalAlpha=1;
+      var t=new T.CanvasTexture(c);t.wrapS=t.wrapT=T.RepeatWrapping;return t;
+    }
+    var wTex=mkWoodTex();
+
+    var woodM=new T.MeshStandardMaterial({map:wTex,roughness:0.82,metalness:0.04,color:0xffffff});
+    var panelM=new T.MeshStandardMaterial({map:wTex,roughness:0.70,metalness:0.03,color:0xcccccc});
+    var goldM=new T.MeshStandardMaterial({color:0xC9A24B,roughness:0.10,metalness:0.96,emissive:0x3D2500,emissiveIntensity:0.35});
+    var handleM=new T.MeshStandardMaterial({color:0xDDB85A,roughness:0.06,metalness:0.98,emissive:0x4A3200,emissiveIntensity:0.45});
+    var floorM=new T.MeshStandardMaterial({color:0x080604,roughness:0.04,metalness:0.75});
 
     var cab=new T.Group();
-    var bW=1.28,bH=1.96,bD=0.52;
-    function bx(w,h,d,mat,px,py,pz){
+    var bW=1.38,bH=2.1,bD=0.56;
+    function bx(w,h,d,mat,px,py,pz,shadow){
       var m=new T.Mesh(new T.BoxGeometry(w,h,d),mat);
-      m.position.set(px||0,py||0,pz||0);cab.add(m);
+      m.position.set(px||0,py||0,pz||0);if(shadow!==false)m.castShadow=true;cab.add(m);return m;
     }
-    // Body
+
+    // Main body
     bx(bW,bH,bD,woodM,0,0,0);
-    // Doors
-    var dW=(bW-0.1)/2,dH=bH-0.1,dz=bD/2+0.015;
-    bx(dW,dH,0.016,panelM,-bW/4,0,dz);
-    bx(dW,dH,0.016,panelM,bW/4,0,dz);
-    // Crown
-    bx(bW+0.08,0.058,bD+0.04,woodM,0,bH/2+0.029,0);
-    bx(bW+0.1,0.012,bD+0.06,goldM,0,bH/2+0.064,0);
-    // Base
-    bx(bW+0.1,0.076,bD+0.06,woodM,0,-bH/2-0.038,0);
-    bx(bW+0.12,0.012,bD+0.08,goldM,0,-bH/2-0.082,0);
-    // Vertical corner trim
-    bx(0.013,bH+0.01,0.022,goldM,-bW/2-0.006,0,bD/2+0.011);
-    bx(0.013,bH+0.01,0.022,goldM,bW/2+0.006,0,bD/2+0.011);
-    // Centre vertical split
-    bx(0.013,bH,0.016,goldM,0,0,bD/2+0.024);
-    // Horizontal strips
-    bx(bW+0.01,0.013,0.022,goldM,0,bH/2-0.022,bD/2+0.011);
-    bx(bW+0.01,0.013,0.022,goldM,0,-bH/2+0.022,bD/2+0.011);
-    // Door inset lines — left
-    var ipW=dW-0.1,ipH=dH-0.14,ipX=-bW/4,ipZ=dz+0.01;
-    bx(ipW,0.007,0.005,goldM,ipX,ipH/2-0.04,ipZ);
-    bx(ipW,0.007,0.005,goldM,ipX,-ipH/2+0.04,ipZ);
-    bx(0.007,ipH,0.005,goldM,ipX-ipW/2+0.04,0,ipZ);
-    bx(0.007,ipH,0.005,goldM,ipX+ipW/2-0.04,0,ipZ);
-    // Door inset lines — right
-    ipX=bW/4;
-    bx(ipW,0.007,0.005,goldM,ipX,ipH/2-0.04,ipZ);
-    bx(ipW,0.007,0.005,goldM,ipX,-ipH/2+0.04,ipZ);
-    bx(0.007,ipH,0.005,goldM,ipX-ipW/2+0.04,0,ipZ);
-    bx(0.007,ipH,0.005,goldM,ipX+ipW/2-0.04,0,ipZ);
-    // Handles
+    // Doors (slightly proud of body)
+    var dW=(bW-0.08)/2,dH=bH-0.08,dz=bD/2+0.013;
+    bx(dW,dH,0.013,panelM,-bW/4,0,dz);
+    bx(dW,dH,0.013,panelM,bW/4,0,dz);
+    // Crown — 3-step cornice
+    bx(bW+0.06,0.048,bD+0.03,woodM,0,bH/2+0.024,0);
+    bx(bW+0.10,0.038,bD+0.055,woodM,0,bH/2+0.067,0);
+    bx(bW+0.15,0.016,bD+0.09,goldM,0,bH/2+0.097,0);
+    // Base — 2-step plinth
+    bx(bW+0.08,0.058,bD+0.04,woodM,0,-bH/2-0.029,0);
+    bx(bW+0.15,0.016,bD+0.09,goldM,0,-bH/2-0.066,0);
+    // Corner trim columns
+    bx(0.012,bH,0.02,goldM,-bW/2-0.006,0,bD/2+0.01);
+    bx(0.012,bH,0.02,goldM,bW/2+0.006,0,bD/2+0.01);
+    // Centre divider
+    bx(0.013,bH-0.08,0.016,goldM,0,0,bD/2+0.02);
+    // Horizontal rails
+    bx(bW+0.01,0.012,0.02,goldM,0,bH/2-0.02,bD/2+0.01);
+    bx(bW+0.01,0.012,0.02,goldM,0,-bH/2+0.02,bD/2+0.01);
+    // Door decorative panel insets (outer + inner on each door)
+    function doorDeco(ox){
+      var pw=dW-0.07,ph=dH-0.09;
+      // outer border
+      bx(pw,0.008,0.006,goldM,ox,ph/2-0.04,dz+0.009);
+      bx(pw,0.008,0.006,goldM,ox,-ph/2+0.04,dz+0.009);
+      bx(0.008,ph,0.006,goldM,ox-pw/2+0.04,0,dz+0.009);
+      bx(0.008,ph,0.006,goldM,ox+pw/2-0.04,0,dz+0.009);
+      // inner border
+      var pw2=pw-0.09,ph2=ph-0.11;
+      bx(pw2,0.005,0.004,goldM,ox,ph2/2-0.04,dz+0.008);
+      bx(pw2,0.005,0.004,goldM,ox,-ph2/2+0.04,dz+0.008);
+      bx(0.005,ph2,0.004,goldM,ox-pw2/2+0.04,0,dz+0.008);
+      bx(0.005,ph2,0.004,goldM,ox+pw2/2-0.04,0,dz+0.008);
+    }
+    doorDeco(-bW/4);doorDeco(bW/4);
+    // Elongated bar handles
     function hdl(hx){
-      bx(0.008,0.17,0.022,handleM,hx,0,dz+0.032);
-      bx(0.03,0.008,0.018,handleM,hx,0.085,dz+0.022);
-      bx(0.03,0.008,0.018,handleM,hx,-0.085,dz+0.022);
+      bx(0.009,0.22,0.026,handleM,hx,0,dz+0.034);
+      bx(0.038,0.009,0.02,handleM,hx,0.11,dz+0.022);
+      bx(0.038,0.009,0.02,handleM,hx,-0.11,dz+0.022);
     }
     hdl(-0.155);hdl(0.155);
-    cab.position.set(0,-0.04,0);
+    cab.position.set(0,-0.05,0);
     scene.add(cab);
 
-    // Lights
-    scene.add(new T.AmbientLight(0x4A3810,0.38));
-    var kl=new T.PointLight(0xC9A24B,3.2,18);kl.position.set(2.5,3.2,4.5);scene.add(kl);
-    var fl=new T.PointLight(0xB08040,1.0,14);fl.position.set(-2.5,1.2,3.5);scene.add(fl);
-    var rl=new T.PointLight(0xC8A040,0.45,10);rl.position.set(0,-2,-2);scene.add(rl);
+    // Reflective floor
+    var floor=new T.Mesh(new T.PlaneGeometry(12,12),floorM);
+    floor.rotation.x=-Math.PI/2;floor.position.y=-bH/2-0.08;
+    floor.receiveShadow=true;scene.add(floor);
 
-    // Interaction
-    var isDrag=false,pX=0,pY=0,tRY=0.25,tRX=0,cRY=0.25,cRX=0,autoR=true,autoTimer=0;
+    // Gold dust particles
+    var pCount=140,pPos=new Float32Array(pCount*3),pSpd=new Float32Array(pCount);
+    for(var i=0;i<pCount;i++){
+      pPos[i*3]=(Math.random()-.5)*5.5;
+      pPos[i*3+1]=(Math.random()-.5)*4.5;
+      pPos[i*3+2]=(Math.random()-.5)*3-0.5;
+      pSpd[i]=0.0003+Math.random()*0.0005;
+    }
+    var pGeo=new T.BufferGeometry();
+    pGeo.setAttribute('position',new T.BufferAttribute(pPos,3));
+    var pts=new T.Points(pGeo,new T.PointsMaterial({color:0xC9A24B,size:0.022,transparent:true,opacity:0.6}));
+    scene.add(pts);
+
+    // Lighting
+    scene.add(new T.AmbientLight(0x2A1D06,0.55));
+    // Key — bright warm gold, upper right
+    var kl=new T.PointLight(0xFFD070,5.0,22);kl.position.set(3,4,5);
+    kl.castShadow=true;kl.shadow.mapSize.width=kl.shadow.mapSize.height=512;scene.add(kl);
+    // Fill — amber, left
+    var fl=new T.PointLight(0xC8880A,1.4,18);fl.position.set(-3.5,1,4);scene.add(fl);
+    // Rim — backlight for silhouette edge
+    var rim=new T.PointLight(0xFFE090,2.0,15);rim.position.set(-1,2.5,-3.5);scene.add(rim);
+    // Under — subtle warmth from floor
+    var ul=new T.PointLight(0xA06808,0.7,9);ul.position.set(0,-3,2);scene.add(ul);
+
+    // Drag interaction
+    var isDrag=false,pX=0,pY=0,tRY=0.2,tRX=0,cRY=0.2,cRX=0,autoR=true,autoTimer=0;
     canvas.addEventListener('pointerdown',function(e){
       isDrag=true;pX=e.clientX;pY=e.clientY;autoR=false;
       clearTimeout(autoTimer);try{canvas.setPointerCapture(e.pointerId);}catch(x){}
@@ -882,7 +934,7 @@ document.getElementById('yr').textContent=new Date().getFullYear();
       if(!isDrag)return;
       tRY+=(e.clientX-pX)*0.009;
       tRX+=(e.clientY-pY)*0.004;
-      tRX=Math.max(-0.42,Math.min(0.42,tRX));
+      tRX=Math.max(-0.4,Math.min(0.4,tRX));
       pX=e.clientX;pY=e.clientY;
     });
     canvas.addEventListener('pointerup',function(){
@@ -895,9 +947,20 @@ document.getElementById('yr').textContent=new Date().getFullYear();
     var raf,firstFrame=true;
     function tick(){
       raf=requestAnimationFrame(tick);
-      if(autoR)tRY+=0.0022;
+      var t=performance.now()*0.001;
+      if(autoR)tRY+=0.0018;
       cRY+=(tRY-cRY)*0.04;cRX+=(tRX-cRX)*0.04;
       cab.rotation.y=cRY;cab.rotation.x=cRX;
+      // Gentle cabinet float
+      cab.position.y=-0.05+Math.sin(t*0.48)*0.032;
+      // Slow particle drift
+      pts.rotation.y=t*0.035;pts.rotation.x=Math.sin(t*0.2)*0.06;
+      // Subtle camera sway
+      if(!isDrag){
+        camera.position.x=0.3+Math.sin(t*0.14)*0.07;
+        camera.position.y=0.2+Math.sin(t*0.21)*0.05;
+        camera.lookAt(0,0,0);
+      }
       renderer.render(scene,camera);
       if(firstFrame){firstFrame=false;canvas.classList.add('ready');}
     }
