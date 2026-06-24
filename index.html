@@ -698,6 +698,7 @@ h1,h2,h3,h4{font-family:'Cormorant Garamond',serif;font-weight:500;line-height:1
   <a class="qt" href="#contact">Sebut Harga</a>
 </nav>
 
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 // NAV scroll + mobile menu
 const nav=document.getElementById('nav');
@@ -976,20 +977,11 @@ document.getElementById('yr').textContent=new Date().getFullYear();
     });
   }
 
-  function load3D(){
-    var canvas=document.getElementById('cabinet3d');
-    if(!canvas)return;
-    // skip on mobile where display:none hides the wrapper
-    var wrap=document.getElementById('hero3dWrap');
-    if(wrap&&getComputedStyle(wrap).display==='none')return;
-    if(window.THREE){initCabinet();return;}
-    var s=document.createElement('script');
-    s.src='https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js';
-    s.onload=initCabinet;
-    document.head.appendChild(s);
+  // THREE already loaded via <script> tag above — call directly
+  var _wrap=document.getElementById('hero3dWrap');
+  if(_wrap&&window.THREE&&getComputedStyle(_wrap).display!=='none'){
+    initCabinet();
   }
-
-  setTimeout(load3D,80);
 })();
 
 (function(){
